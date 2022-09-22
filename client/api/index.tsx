@@ -1,10 +1,13 @@
 import axios from "axios";
 
-export function signupUser(payload: { email: string; password: string }) {
-  return axios.post("/api/users/signup", payload).then((res) => res.data);
+export async function signupUser(payload: { email: string; password: string }) {
+  const response = await axios.post("/api/users/signup", payload);
+  return response.data;
 }
 
-export function signinUser(payload: { email: string; password: string }) {
-  return axios.post("/api/users/signin", payload, {withCredentials: true}).then((res) => res.data);
+export async function signinUser(payload: { email: string; password: string }) {
+  const response = await axios.post("/api/users/signin", payload, {
+    withCredentials: true,
+  });
+  return response.data;
 }
-

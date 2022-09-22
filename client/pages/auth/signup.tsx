@@ -1,105 +1,70 @@
-import { useForm } from "@mantine/form";
 import { useMutation } from "react-query";
-import { signupUser } from "../../api";
-import request from "axios";
-import {
-  Container,
-  Title,
-  Button,
-  Paper,
-  TextInput,
-  Stack,
-} from "@mantine/core";
-import { showNotification, updateNotification } from "@mantine/notifications";
-
-import Head from "next/head";
 import { useRouter } from "next/router";
+import { FormEventHandler } from "react";
+import useRequest, { ErrorResponse } from "../../hooks/use-request";
+import ErrorMarkup from "../../components/ErrorMarkup";
 
-interface IUser {
+export interface IUser {
   id: string;
   email: string;
 }
 
-type ErrorResponse = {
-  errors: [{ message: string }];
-};
-
 const signup = () => {
   const router = useRouter();
 
-  const form = useForm({
-    initialValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const { doRequest } = useRequest("/api/users/signup", "post");
 
   const mutation = useMutation<
     IUser,
-    Error,
-    Parameters<typeof signupUser>["0"]
-  >(signupUser, {
-    onMutate: () => {
-      showNotification({
-        id: "register",
-        title: "Creating account",
-        message: "Please wait...",
-        loading: true,
-      });
-    },
-    onSuccess: (data) => {
-      updateNotification({
-        id: "register",
-        title: "Success",
-        message: "Successfully created account",
-      });
+    [{ message: string; field: string }],
+    Parameters<typeof doRequest>["0"]
+  >(doRequest);
 
-      router.push("/auth/signin");
-    },
-    onError: (err) => {
-      if (request.isAxiosError(err) && err.response) {
-        // Is this the correct way?
-        const errors = (err.response?.data as ErrorResponse).errors;
+  const onSubmit: FormEventHandler<HTMLFormElement> = (
+    e: React.SyntheticEvent
+  ) => {
+    e.preventDefault();
 
-        errors.forEach((err, index) => {
-          showNotification({
-            title: `Error ${index + 1}`,
-            message: err.message,
-            sx: { backgroundColor: "red" },
-            color: "white",
-          });
-        });
-      }
-    },
-  });
+    const target = e.target as typeof e.target & {
+      email: { value: string };
+      password: { value: string };
+    };
+
+    const email = target.email.value;
+    const password = target.password.value;
+
+    mutation.mutate({ email, password });
+  };
+
+  if (mutation.isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (mutation.isSuccess) {
+    router.push("/");
+  }
 
   return (
     <>
-      <Head>
-        <title>Sign Up</title>
-      </Head>
-      <Container>
-        <Title>Sign Up</Title>
-        <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-          <form onSubmit={form.onSubmit((values) => mutation.mutate(values))}>
-            <Stack>
-              <TextInput
-                label="Email"
-                placeholder="jane@example.com"
-                required
-                {...form.getInputProps("email")}
-              />
-              <TextInput
-                label="Password"
-                placeholder="password"
-                required
-                {...form.getInputProps("password")}
-              />
-            </Stack>
-            <Button type="submit">SignUp</Button>
-          </form>
-        </Paper>
-      </Container>
+      <h1>Sign Up</h1>
+
+      {mutation.isError && ErrorMarkup(mutation.error)}
+
+      <form onSubmit={onSubmit}>
+        <div className="form-group">
+          <label htmlFor="email">Email</label>
+          <input type="text" id="email" className="form-control" />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input type="password" id="password" className="form-control" />
+        </div>
+
+        <button type="submit" className="btn btn-primary">
+          Sign Up
+        </button>
+      </form>
     </>
   );
 };
