@@ -1,5 +1,9 @@
-import axios from "axios";
-import { GetServerSideProps, InferGetServerSidePropsType } from "next";
+import axios, { AxiosRequestHeaders } from "axios";
+import {
+  GetServerSideProps,
+  GetServerSidePropsContext,
+  InferGetServerSidePropsType,
+} from "next";
 import { FC } from "react";
 import { IUser } from "./auth/signup";
 
@@ -7,16 +11,19 @@ interface InitialPageProps {
   currentUser: IUser;
 }
 
-const LandingPage = (
-  props: InferGetServerSidePropsType<typeof getServerSideProps>
-) => {
-  console.log("props", props.);
-
-  return <h1>Landing Page</h1>;
+const LandingPage = (props: InitialPageProps) => {
+  return props.currentUser ? (
+    <h1>You are logged in</h1>
+  ) : (
+    <h1>You are not logged in</h1>
+  );
 };
 
-export async function getServerSideProps(request: any) {
-  const { req } = request;
+export const getServerSideProps = async ({
+  req,
+}: {
+  req: { headers: AxiosRequestHeaders };
+}) => {
   let res;
   if (typeof window === "undefined") {
     res = await axios.get(
@@ -30,9 +37,7 @@ export async function getServerSideProps(request: any) {
     res = await axios.get("/api/users/currentuser");
   }
 
-  const currentUser = res.data;
-
-  return { props: currentUser };
-}
+  return { props: res.data };
+};
 
 export default LandingPage;
